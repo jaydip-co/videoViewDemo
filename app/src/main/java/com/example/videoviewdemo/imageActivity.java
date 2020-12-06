@@ -49,7 +49,8 @@ public class imageActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 //                overPrint();
-                drawTextToBitmap(getApplicationContext(),img1,"jay");
+                Bitmap newBItmap = drawTextToBitmap(getApplicationContext(),img1,"jay");
+                imageView.setImageBitmap(newBItmap);
 //                Intent intent = new Intent();
 //                intent.setType("image/*");
 //                intent.setAction(Intent.ACTION_GET_CONTENT);
@@ -113,9 +114,9 @@ public class imageActivity extends AppCompatActivity {
         // new antialised Paint
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         // text color - #3D3D3D
-        paint.setColor(Color.rgb(61, 61, 61));
+        paint.setColor(Color.rgb(255, 0, 0));
         // text size in pixels
-        paint.setTextSize((int) (14 * scale));
+        paint.setTextSize((int) (140 * scale));
         // text shadow
         paint.setShadowLayer(1f, 0f, 1f, Color.WHITE);
 
