@@ -4,26 +4,39 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.ImageView;
 
+import com.example.videoviewdemo.model.GifFile;
+import com.hbisoft.pickit.PickiT;
+import com.hbisoft.pickit.PickiTCallbacks;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
-public class imageActivity extends AppCompatActivity {
+public class imageActivity extends AppCompatActivity implements PickiTCallbacks {
 
     Button ImageButton,ImageButton2;
     ImageView imageView;
@@ -58,10 +71,63 @@ public class imageActivity extends AppCompatActivity {
             }
         });
     }
+    private String getRealPathFromURI(Context context, Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = context.getContentResolver().query(contentUri,  proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index)+"jay";
+        } catch (Exception e) {
+            Log.e("jaydip", "getRealPathFromURI Exception : " + e.toString());
+            return "";
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+    String getPath(Uri uri){
+        String res = "jay";
+        try {
+            FileInputStream inputStream = (FileInputStream) getContentResolver().openInputStream(uri);
+            File file = new File(getFilesDir(),"first.gif");
+            FileOutputStream stream = new FileOutputStream(file);
+            int len;
+            byte[] buf = new byte[1024];
+            while ((len = inputStream.read(buf)) > 0){
+                stream.write(buf,0,len);
+            }
+            inputStream.close();
+            stream.close();
 
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return  res;
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.e("jaydip",data.getData().toString());
+        if(resultCode == RESULT_OK && requestCode == 205){
+//            Uri uri = data.getData();
+//            PickiT pickiT = new PickiT(getApplicationContext(),this,getParent());
+//            pickiT.getPath(data.getData(),Build.VERSION.SDK_INT);
+//            ContentResolver resolver = getContentResolver();
+//            MimeTypeMap map = MimeTypeMap.getSingleton();
+//            String type = map.getExtensionFromMimeType(resolver.getType(data.getData()));
+//            String path = getRealPathFromURI(getApplicationContext(),uri);
+//            Log.e("jaydip",type);
+            getPath(data.getData());
+
+
+
+//            GifFile file = new GifFile(uri,getApplicationContext());
+        }
         if(requestCode == 205 && resultCode == RESULT_OK){
             try {
                 img1 = MediaStore.Images.Media.getBitmap(getContentResolver(),data.getData());
@@ -71,15 +137,15 @@ public class imageActivity extends AppCompatActivity {
             }
 
         }
-        if(requestCode == 206 && resultCode == RESULT_OK){
-            try {
-                img2 = MediaStore.Images.Media.getBitmap(getContentResolver(),data.getData());
-                imageView.setImageBitmap(img2);
-            }
-            catch (Exception e){
-                e.printStackTrace();
-            }
-        }
+//        if(requestCode == 206 && resultCode == RESULT_OK){
+//            try {
+//                img2 = MediaStore.Images.Media.getBitmap(getContentResolver(),data.getData());
+//                imageView.setImageBitmap(img2);
+//            }
+//            catch (Exception e){
+//                e.printStackTrace();
+//            }
+//        }
     }
     @RequiresApi(api = Build.VERSION_CODES.M)
     void overPrint(){
@@ -129,5 +195,26 @@ public class imageActivity extends AppCompatActivity {
         canvas.drawText(gText, x, y, paint);
 
         return bitmap;
+    }
+
+    @Override
+    public void PickiTonUriReturned() {
+
+    }
+
+    @Override
+    public void PickiTonStartListener() {
+
+    }
+
+    @Override
+    public void PickiTonProgressUpdate(int progress) {
+        Log.e("jaydip",progress+"");
+
+    }
+
+    @Override
+    public void PickiTonCompleteListener(String path, boolean wasDriveFile, boolean wasUnknownProvider, boolean wasSuccessful, String Reason) {
+            Log.e("jaydip",path+"jaydip");
     }
 }

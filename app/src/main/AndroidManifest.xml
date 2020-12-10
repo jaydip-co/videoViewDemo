@@ -3,6 +3,7 @@
     package="com.example.videoviewdemo">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -11,16 +12,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.VideoViewDemo">
-        <activity android:name=".imageActivity">
+        <activity android:name=".BitmapCreate">
+
+        </activity>
+        <activity android:name=".EditFrames">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity">
-
-        </activity>
+        <activity android:name=".MultipleImage"></activity>
+        <activity android:name=".MovableImage" />
+        <activity android:name=".GifConvert"></activity>
+        <activity android:name=".imageActivity" />
+        <activity android:name=".MainActivity" />
     </application>
 
 </manifest>
