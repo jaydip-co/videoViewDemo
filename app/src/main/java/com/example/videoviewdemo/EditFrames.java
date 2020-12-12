@@ -15,6 +15,9 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,6 +29,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -81,21 +85,24 @@ boolean isDecorating = false;
         saveButton = findViewById(R.id.saveButton);
         saveB  =  findViewById(R.id.save);
         fps = findViewById(R.id.fps);
+        gifFile.statusHeight = (int) convertDpInPx(24f);
+        Log.e("jaydip24dp",convertDpInPx(24f)+"'");
         saveB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 gifFile.draw(getApplicationContext());
+//                save();
             }
         });
         addapter = new StrikerAddapter(getApplicationContext(),this);
         strikerRecycle.setAdapter(addapter);
         strikerRecycle.setLayoutManager(new LinearLayoutManager(this));
-//       float f =  getResources().getDisplayMetrics().density;
-//       float h = getResources().getDisplayMetrics().heightPixels;
-//        float w = getResources().getDisplayMetrics().widthPixels;
-//       Log.e("jaydip den",f+"");
-//        Log.e("jaydip width",w+"");
-//        Log.e("jaydip height",h+"");
+       float f =  getResources().getDisplayMetrics().density;
+       float h = getResources().getDisplayMetrics().heightPixels;
+        float w = getResources().getDisplayMetrics().widthPixels;
+       Log.e("jaydip den",f+"");
+        Log.e("jaydip width",w+"");
+        Log.e("jaydip height",h+"");
         float di = 200f;
         Log.e("jaydip","200 in px "+convertDpInPx(200));
 //        int[] scal1 = new int[2];
@@ -174,16 +181,16 @@ boolean isDecorating = false;
 //                return true;
 //            }
 //        });
-        currentImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.setType("image/*");
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
-                startActivityForResult(Intent.createChooser(intent,"Select Image"),205);
-            }
-        });
+//        currentImage.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent();
+//                intent.setType("image/*");
+//                intent.setAction(Intent.ACTION_GET_CONTENT);
+//                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
+//                startActivityForResult(Intent.createChooser(intent,"Select Image"),205);
+//            }
+//        });
         speedSlider.addOnChangeListener(new Slider.OnChangeListener() {
             @Override
             public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
@@ -193,9 +200,102 @@ boolean isDecorating = false;
                 gifFile.fps = val;
             }
         });
+        LinearLayout l = findViewById(R.id.MainLayout);
+        int a[] = new int[2];
+        l.getLocationOnScreen(a);
+//        getWindow().getDecorView().getLocationOnScreen(a);
+        Log.e("jaydipStat", a[0]+"  //" +a[1]);
+        int wt = getResources().getDisplayMetrics().widthPixels;
+        int ht = getResources().getDisplayMetrics().heightPixels;
 
+        //TODO : change the value 40 witch is fixed according to space abow appbar
+        float hh = ((float)ht)*2/3 - convertDpInPx(24f);
+        Log.e("jaydipTest","screent dime"+wt+"  //"+hh);
+        setInitial();
     }
-    Bitmap resize(Bitmap b,int height,int width){
+    void setInitial(){
+        currentImage.setImageBitmap(gifFile.getCurrentFrame());
+        frameSlider.setValue(gifFile.currentFrame);
+        frameSlider.setValueFrom(1);
+        frameSlider.setValueTo(gifFile.frames.size());
+        frameSlider.setStepSize(1);
+    }
+    void save(){
+        Bitmap currentFrame = gifFile.getCurrentFrame();
+        int w = getResources().getDisplayMetrics().widthPixels;
+        int ht = getResources().getDisplayMetrics().heightPixels;
+        Log.e("jaydipDraw",ht+"");
+        //TODO : change the value 40 witch is fixed according to space abow appbar
+        float h = ((float)ht)*2/3 - convertDpInPx(24f);
+        Bitmap temp = Bitmap.createBitmap(w,(int)h, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(temp);
+        canvas.drawColor(Color.WHITE);
+        Bitmap toDraw = resize(currentFrame,w,(int)h);
+        int BW = toDraw.getWidth();
+        int BH = toDraw.getHeight();
+        float left=0,top=0;
+        if(BW > BH){
+            top = (h - BH)/2;
+        }
+        else {
+            left = (w - BW)/2;
+        }
+        canvas.drawBitmap(toDraw,left,top,null);
+        Sticker striker = gifFile.stickers.get(0);
+        float angle = striker.angle;
+        left = striker.x;
+        top = striker.y;
+        Bitmap image = striker.image;
+        Matrix matrix = new Matrix();
+        matrix.preRotate(angle,image.getWidth()/2,image.getHeight()/2);
+        Bitmap te = Bitmap.createBitmap(image,0,0,image.getWidth(),image.getHeight(),matrix,false);
+
+        float x = striker.x + (image.getWidth()/2);
+        float y = striker.y +(image.getHeight()/2);
+        canvas.save();
+        canvas.rotate(angle,x,y);
+        Log.e("jaydipCanvasCenter",w/2+"   "+h/2);
+        Log.e("jaydipCanvasCenter","canvas"+canvas.getWidth()+"   "+canvas.getHeight());
+
+        canvas.drawBitmap(image,left,top,null);
+        canvas.restore();
+//        canvas.restore();
+        currentImage.setImageBitmap(temp);
+    }
+//    Bitmap resize(Bitmap b,int width,int height){
+//        int h = b.getHeight();
+//        int w = b.getWidth();
+//        float d = (float) w/(float) h;
+//        Log.e("bitmap sa",w+"  /  "+h+"   / "+d);
+//        Log.e("bitmap max,",width+"  / "+height);
+//        if(w > width){
+//            Log.e("jaydip res","first 1");
+//            w = width;
+//            h = (int) (w / d);
+//        }
+//        else if (h > height){
+//            Log.e("jaydip res","first 2");
+//            h = height;
+//            w = (int) (h*d);
+//        }else if(w<width && h<height){
+//            Log.e("jaydip res","first 3");
+//            if(w > h){
+//                Log.e("jaydip res","first 4");
+//                w = width;
+//                h = (int) (w/d);
+//                Log.e("bitmap height",h+"");
+//
+//            }
+//            else {
+//                Log.e("jaydip res","first 5");
+//                h = height;
+//                w = (int) (h * d);
+//            }
+//        }
+//        Log.e("bitmap final",w+"  /"+h);
+//        return  Bitmap.createScaledBitmap(b,w,h,false);
+//    }
+    Bitmap resize(Bitmap b,int width,int height){
         int h = b.getHeight();
         int w = b.getWidth();
         float d = (float) w/(float) h;
@@ -228,8 +328,9 @@ boolean isDecorating = false;
         Log.e("bitmap final",w+"  /"+h);
         return  Bitmap.createScaledBitmap(b,w,h,false);
     }
-    private int xDelta, yDelta;
+
     View.OnTouchListener moveListener = new View.OnTouchListener() {
+        private int xDelta, yDelta;
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             final int x = (int) event.getRawX();
@@ -253,8 +354,8 @@ boolean isDecorating = false;
 //                            Log.e("jaydip move",layoutParams.width+"");
                         layoutParams.leftMargin = x - xDelta;
                         Log.e("jaydip",(x-xDelta+v.getWidth())+"");
-                        secX = x -xDelta + (int)convertDpInPx(25f);
-                        secY = y - yDelta + (int) convertDpInPx(25f);
+                        secX = x -xDelta + (int) convertDpInPx(25f);
+                        secY = y - yDelta + (int) convertDpInPx(25f);;
                         layoutParams.topMargin = y - yDelta;
                         layoutParams.rightMargin = 0;
                         layoutParams.bottomMargin = 0;
@@ -277,8 +378,9 @@ boolean isDecorating = false;
                 case MotionEvent.ACTION_UP : {
 //                    save();
                     FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) v.getLayoutParams();
-                    int left = p.leftMargin + (int)convertDpInPx(25f);
+                    int left = p.leftMargin +(int) convertDpInPx(25f);
                     int top = p.topMargin + (int) convertDpInPx(25f);
+                    View parent = (View) v.getParent();
                     gifFile.setXandY(left,top,v.getId());
                 }
             }
@@ -286,75 +388,83 @@ boolean isDecorating = false;
             return true;
         }
     };
-    View.OnTouchListener RotateListener = new View.OnTouchListener() {
-        int xDelta=0,yDelta=0;
-        int xMid =0 ,yMid =0;
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            final int x = (int) event.getX();
-            final int y = (int) event.getY();
+//
+    private View.OnTouchListener getResiseListener() {
 
-            Log.e("jaydipRotate",v.getId()+"");
-            View parrent = (View) v.getParent();
-            Log.e("jaydipParentId",parrent.getId()+"   //  "+parrent.getWidth()+"   //  "+parrent.getHeight());
-            switch (event.getAction() & MotionEvent.ACTION_MASK){
-                case MotionEvent.ACTION_DOWN:{
-                    xDelta = (int) event.getRawX();
-                    yDelta = (int) event.getRawY();
-                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) parrent.getLayoutParams();
-                    xMid = params.leftMargin + (parrent.getWidth()/2);
-                    yMid = params.topMargin + (parrent.getHeight()/2);
+        return new View.OnTouchListener() {
+            float xCenter =0,yCenter=0;
+            float preX=0,preY=0;
+            double refdis =0 ;
+            View parent;
+            int width,height;
 
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction() & MotionEvent.ACTION_MASK){
+                    case MotionEvent.ACTION_DOWN:{
 
-                    Log.e("jaydipDistane",xDelta+"  //  "+yDelta+"   -  "+xMid+"  //  "+yMid);
+                        parent = (View) v.getParent();
+                        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) parent.getLayoutParams();
+                        int w = parent.getWidth();
+                        int h = parent.getHeight();
+                        xCenter = params.leftMargin + (w/2);
+                        yCenter = params.topMargin + (h/2);
+                        refdis = Math.sqrt((w*w)+(h*h))/2;
+                        View imageView = parent.findViewById(R.id.Image);
+                        width = imageView.getWidth();
+                        height = imageView.getHeight();
 
-//                    int defX = xMid - xDelta;
-//                    int defy =  yMid - yDelta;
-//                    Log.e("jaydipDef",defX+"  // "+defy);
-//                    dAM = Math.sqrt(defX*defX + defy*defy);
-//                    Log.e("jaydipdef",dAM+"  //");
-                    break;
-                }
-                case MotionEvent.ACTION_MOVE :{
-                    int newX = (int) event.getRawX();
-                    int newY = (int) event.getRawY();
-//                    Log.e("jaydipDistance New ",newX+"  // "+newY);
-//                    int defX = xMid - xDelta;
-//                    int defy =  yMid - yDelta;
-////                    Log.e("jaydipDef",defX+"  // "+defy);
-//                    float dAM = (float) Math.sqrt(defX*defX + defy*defy);
-//                      defX = xMid - newX;
-//                      defy =  yMid - newY;
-//                     double dMN = Math.sqrt(defX*defX + defy*defy);
-//                     defX = xDelta -newX;
-//                     defy = yDelta - newY;
-//                     double dAN = Math.sqrt(defX*defX + defy*defy);
-////                     Log.e("jaydipDistance1",dAM+"    //   "+dMN+"   /  "+dAN);
-//                     double angle = (dAM*dAM + dMN*dAN - dAN*dAN)/(2*dAM*dMN);
-//                     Log.e("jaydipF",angle+"");
-//                    double andleInDegree = angle*(180/3.14);
-//                     Log.e("jaydipAngle","  == "+andleInDegree);
-
-//                     parrent.setRotation((float) ((float) angle*(180/3.14)));
-
-                    double mMA = (yDelta -yMid)/(xDelta -xMid);
-                    double mMN = (newY - yMid)/(newX - xMid);
-                    double tanM = (mMN -mMA)/(1+mMA*mMN);
-                    double angleinDegree = Math.toDegrees(Math.atan(tanM));
-
-                    Log.e("jaydip",angleinDegree+"");
-                    if(angleinDegree > 0 && angleinDegree<90) {
-                        parrent.setRotation((float) angleinDegree);
+                        break;
                     }
+                    case MotionEvent.ACTION_MOVE:{
+                        float newX = event.getRawX();
+                        float newY = event.getRawY();
+                        float dx = Math.abs(newX - xCenter);
+                        float dy = Math.abs(newY - yCenter);
+                        double ratio = Math.sqrt(dx*dx + dy*dy)/refdis;
 
-                     break;
+                            View parent = (View) v.getParent();
+                            ImageView imageView = parent.findViewById(R.id.Image);
+                            Log.e("jaydipHW",imageView.getHeight()+" // "+imageView.getWidth());
+                        float newW=0, newH =0;
+//                        if(newX > preX){
+//                                newW = imageView.getWidth() + dx;
+//                        }
+//                        else {
+//                            newW = imageView.getWidth() - dx;
+//                        }
+//                        if(newY > preY){
+//                            newH = imageView.getHeight() + dy;
+//
+//                        }
+//                        else {
+//                            newH = imageView.getHeight() - dy;
+//
+//                        }
+//                        preX = newX;
+//                        preY = newY;
+                        newW = (float) (width*ratio);
+                        newH = (float) (height*ratio);
 
+//                        Bitmap bitmap = gifFile.getBitmap(parent.getId());
+//                        Bitmap temp = Bitmap.createScaledBitmap(bitmap,(int)newH,(int)newW,false);
+//                        gifFile.setBitmap(temp,parent.getId());
+//                        imageView.setImageBitmap(temp);
+
+                         ConstraintLayout.LayoutParams la = (ConstraintLayout.LayoutParams) imageView.getLayoutParams();
+                        la.width = (int) newW;
+                        la.height = (int) newH;
+                        Log.e("jaydipTest",newW +"  // "+newH);
+                        gifFile.setStickerDimension(parent.getId(),(int)newH,(int) newH);
+
+                        imageView.setLayoutParams(la);
+
+                    }
                 }
-
+                return true;
             }
-            return true;
-        }
-    };
+        };
+    }
 //    void save(){
 //        Log.e("jaydip hei",getResources().getDisplayMetrics().heightPixels+"");
 //        int w  = getResources().getDisplayMetrics().heightPixels;
@@ -400,30 +510,32 @@ boolean isDecorating = false;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == 205 && resultCode == RESULT_OK){
-            Log.e("jaydip","jay   /  "+data.getClipData().toString());
-            ClipData clipData = data.getClipData();
-
-            for(int i =0 ;i< clipData.getItemCount();i++){
-                ClipData.Item item = clipData.getItemAt(i);
-                Uri uri = item.getUri();
-                try {
-                    Bitmap tempBit = MediaStore.Images.Media.getBitmap(getContentResolver(),uri);
-                    Log.e("jaydip bitmap size","widh "+tempBit.getWidth()+"height"+tempBit.getHeight());
-                    gifFile.frames.add(tempBit);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            currentImage.setImageBitmap(gifFile.getCurrentFrame());
-            frameSlider.setValueTo(gifFile.frames.size());
-            frameSlider.setValueFrom(1);
-            frameSlider.setValue(1);
-            frameSlider.setStepSize(1);
-
-//            gifFile.saveGif("jay",getApplicationContext());
-
-        }
+//        if(requestCode == 205 && resultCode == RESULT_OK){
+//
+//            Log.e("jaydip","jay   /  "+data.getClipData().toString());
+//            ClipData clipData = data.getClipData();
+//
+//            for(int i =0 ;i< clipData.getItemCount();i++){
+//                ClipData.Item item = clipData.getItemAt(i);
+//                Uri uri = item.getUri();
+//                try {
+//                    Bitmap tempBit = MediaStore.Images.Media.getBitmap(getContentResolver(),uri);
+//                    Log.e("jaydipTest","widh "+tempBit.getWidth()+"height"+tempBit.getHeight());
+//
+//                    gifFile.frames.add(tempBit);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//            currentImage.setImageBitmap(gifFile.getCurrentFrame());
+//            frameSlider.setValueTo(gifFile.frames.size());
+//            frameSlider.setValueFrom(1);
+//            frameSlider.setValue(1);
+//            frameSlider.setStepSize(1);
+//
+////            gifFile.saveGif("jay",getApplicationContext());
+//
+//        }
         if(requestCode == 206 && resultCode == RESULT_OK){
             try {
                 Bitmap temp = MediaStore.Images.Media.getBitmap(getContentResolver(),data.getData());
@@ -462,6 +574,7 @@ boolean isDecorating = false;
                     edit.setImageDrawable(getDrawable(R.drawable.rorate));
                 }
                 imageView1.setImageBitmap(temp);
+                Log.e("jaydipHW",temp.getWidth()+"   //  "+temp.getHeight()+"//   bitmap  ");
                 ImageView cacel = v.findViewById(R.id.cancelButton);
                 cacel.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -473,7 +586,9 @@ boolean isDecorating = false;
                     }
                 });
                 ImageView rotate = v.findViewById(R.id.rotate);
-                rotate.setOnTouchListener(RotateListener);
+                rotate.setOnTouchListener(getRotateListener());
+                ImageView resize = v.findViewById(R.id.resize);
+                resize.setOnTouchListener(getResiseListener());
 
 //               imageView1.setOnClickListener(new View.OnClickListener() {
 //                   @Override
@@ -501,6 +616,57 @@ boolean isDecorating = false;
 
         }
     }
+
+    private View.OnTouchListener getRotateListener() {
+        return new View.OnTouchListener() {
+            float xCenter=0,yCenter=0;
+            double refAngle = 0;
+            View parent;
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction() & MotionEvent.ACTION_MASK){
+                    case MotionEvent.ACTION_DOWN:{
+                        parent = (View) v.getParent();
+                        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) parent.getLayoutParams();
+                        xCenter = params.leftMargin + (parent.getWidth()/2);
+                        yCenter = params.topMargin + (parent.getHeight()/2);
+                      refAngle =  Math.atan(parent.getHeight()/(double)parent.getWidth());
+                      Log.e("harshitAngle width",refAngle+"  /// "+parent.getWidth()+ "   //  "+parent.getHeight());
+                      break;
+                    }
+                    case MotionEvent.ACTION_MOVE : {
+                        float newx = event.getRawX();
+                        float newy = event.getRawY();
+                        if(newx == xCenter && newy == yCenter){
+                            return true;
+                        }
+                        double dCR = Math.sqrt((newx-xCenter)*(newx-xCenter) + (newy-yCenter)*(newy-yCenter));
+                        double ang = Math.acos((newx -xCenter)/dCR);
+                        Log.e("harshitAngle ang",ang+"");
+                        if(newy < yCenter){
+                            ang =   Math.toDegrees(   refAngle  - ang);
+                        }
+                        else {
+                            ang =   Math.toDegrees(ang + refAngle);
+                        }
+//                        if(newy < yCenter){
+//                            ang =   -Math.toDegrees(   refAngle  +ang);
+//                        }
+//                        else {
+//                            ang =   Math.toDegrees(ang - refAngle);
+//                        }
+                        Log.e("harshitAngle final",ang+"\n");
+                        gifFile.setRotation((float)ang,parent.getId());
+                        parent.setRotation((float) ang);
+                        break;
+                    }
+                }
+                return true;
+            }
+        };
+    }
+
+
     void refresh(){
         int currentFrame = gifFile.currentFrame;
         Bitmap currentBitmap = gifFile.getCurrentFrame();

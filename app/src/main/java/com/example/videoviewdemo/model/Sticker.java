@@ -8,9 +8,12 @@ public class Sticker {
     public int start, end;
     public int x,y;
     public float angle;
+    public int height,width;
 
     public Sticker(Bitmap image) {
         this.image = image;
+        width = image.getWidth();
+        height = image.getHeight();
     }
     public Sticker(){}
 }

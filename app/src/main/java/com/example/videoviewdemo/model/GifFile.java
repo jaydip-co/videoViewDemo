@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.FileUtils;
 import android.util.Log;
+import android.util.TypedValue;
+import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -26,6 +28,8 @@ public class GifFile {
     public  List<Sticker> stickers = new ArrayList<>();
     public int currentFrame = 1;
     public int currentStriker = -1;
+    public int maxWidth = 0 ,maHeight =0 ;
+    public int statusHeight = 0;
 
     public static GifFile getInstance(){
         if(Instance == null){
@@ -43,6 +47,16 @@ public class GifFile {
     public Sticker getCurrentStiker(){
         return stickers.get(currentStriker);
     }
+    public void setRotation(float angle,int vId){
+        for (Sticker s : stickers){
+            if(s.viewId == vId){
+                s.angle = angle;
+
+                Log.e("AngleSeted",angle+"");
+                break;
+            }
+        }
+    }
 
     public void setXandY(int X,int Y,int vId){
         Sticker single = new Sticker();
@@ -58,7 +72,31 @@ public class GifFile {
         Log.e("jaydipindex",in+"");
         stickers.set(in,single);
     }
+    public void setStickerDimension(int vId,int width,int height){
+        for (Sticker s : stickers){
+            if(s.viewId == vId){
+                s.width = width;
+                s.height = height;
+                break;
+            }
+        }
+    }
 
+    public Bitmap getBitmap(int vId){
+        for (Sticker s : stickers){
+            if(s.viewId == vId){
+                return  s.image;
+            }
+        }
+        return null;
+    }
+    public void setBitmap(Bitmap bitmap,int vId){
+        for (Sticker s : stickers){
+            if(s.viewId == vId){
+                s.image = bitmap;
+            }
+        }
+    }
     public  void deleteStricker(int vId){
         for (Sticker s : stickers){
             if(s.viewId == vId){
@@ -73,28 +111,49 @@ public class GifFile {
         int ht = context.getResources().getDisplayMetrics().heightPixels;
 Log.e("jaydipDraw",ht+"");
         //TODO : change the value 40 witch is fixed according to space abow appbar
-        float h = ((float)ht)*2/3 - 40;
+        int h = (int) (((float)ht)*2/3 -statusHeight);
         Log.e("jaydipDraw ","heighrt  "+h+" width  "+w);
+//        double ratioX = maxWidth/w;
+//        double ratioY = maHeight/h;
+        List<Bitmap> scaledFrames = new ArrayList<>();
+        for(int i=0;i<frames.size();i++){
+            Bitmap temp = resize(frames.get(i),w,(int)h);
+            if(temp.getWidth() > maxWidth){
+                maxWidth = temp.getWidth();
+            }
+            if(temp.getHeight() > maHeight){
+                maHeight = temp.getHeight();
+            }
+            scaledFrames.add(temp);
+        }
+        int xMargin = (w - maxWidth)/2;
+        int yMargin = (h - maHeight)/2;
 
        int current = 0;
-       while(current < frames.size()){
-           Bitmap temp = Bitmap.createBitmap(w,(int)h,Bitmap.Config.RGB_565);
+       while(current < scaledFrames.size()){
+           Bitmap temp = Bitmap.createBitmap(maxWidth,maHeight,Bitmap.Config.RGB_565);
            Canvas canvas = new Canvas(temp);
            canvas.drawColor(Color.WHITE);
-           Bitmap toDraw = resize(frames.get(current),w,(int)h);
+           Bitmap toDraw = scaledFrames.get(current);
            int BW = toDraw.getWidth();
            int BH = toDraw.getHeight();
            float left=0,top=0;
            if(BW > BH){
-               top = (h - BH)/2;
+               top = (maHeight - BH)/2;
            }
            else {
-               left = (w - BW)/2;
+               left = (maxWidth - BW)/2;
            }
            canvas.drawBitmap(toDraw,left,top,null);
            for(Sticker s : stickers){
                if(s.start <= current+1 && s.end >= current+1){
-                   canvas.drawBitmap(s.image,s.x,s.y,null);
+                   Bitmap bitmap= Bitmap.createScaledBitmap(s.image,(int)(s.width),(int)(s.height),false);
+                   float px = (float) (s.x -xMargin +( bitmap.getWidth()/2));
+                   float py = (float) (s.y - yMargin+( bitmap.getHeight()/2));
+                   canvas.save();
+                   canvas.rotate(s.angle,px,py);
+                   canvas.drawBitmap(bitmap,(float) (s.x -xMargin),(float)( s.y-yMargin),null);
+                   canvas.restore();
                }
            }
            finalFrames.add(temp);
@@ -113,49 +172,67 @@ Log.e("jaydipDraw",ht+"");
                 mEncoder.addFrame(b);
             }
             mEncoder.finish();
-            File file = new File(context.getExternalFilesDir("jay"),FinalFileName);
+            File fileD = new File("/storage/emulated/0/GifCreater");
+            if(!fileD.exists()){
+                boolean b = fileD.mkdir();
+                Log.e("jaydip",b+"");
+            }
+            File file = new File(fileD,FinalFileName);
             Log.e("jaydipPath",file.getAbsolutePath());
 
             FileOutputStream stream = new FileOutputStream(file);
             stream.write(bos.toByteArray());
             stream.close();
             Log.e("jaydip : status","saved");
+            Toast.makeText(context,"saved:- "+file.getAbsolutePath(),Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             e.printStackTrace();
         }
 
 
     }
+
     Bitmap resize(Bitmap b,int width,int height){
         int h = b.getHeight();
         int w = b.getWidth();
         float d = (float) w/(float) h;
         Log.e("bitmap sa",w+"  /  "+h+"   / "+d);
         Log.e("bitmap max,",width+"  / "+height);
-        if(w > width){
-            Log.e("jaydip res","first 1");
-            w = width;
-            h = (int) (w / d);
+        float ratiox = width/(float) w;
+        float ratioy = height/(float)h;
+        if(ratiox < ratioy){
+            w = (int) (w*ratiox);
+            h = (int) (h*ratiox);
         }
-        else if (h > height){
-            Log.e("jaydip res","first 2");
-            h = height;
-            w = (int) (h*d);
-        }else if(w<width && h<height){
-            Log.e("jaydip res","first 3");
-            if(w > h){
-                Log.e("jaydip res","first 4");
-                w = width;
-                h = (int) (w/d);
-                Log.e("bitmap height",h+"");
+        else {
+            w = (int) (w*ratioy);
+            h = (int) (h*ratioy);
+        }
 
-            }
-            else {
-                Log.e("jaydip res","first 5");
-                h = height;
-                w = (int) (h * d);
-            }
-        }
+//        if(w > width){
+//            Log.e("jaydip res","first 1");
+//            w = width;
+//            h = (int) (w / d);
+//        }
+//        else if (h > height){
+//            Log.e("jaydip res","first 2");
+//            h = height;
+//            w = (int) (h*d);
+//        }else if(w<width && h<height){
+//            Log.e("jaydip res","first 3");
+//            if(w > h){
+//                Log.e("jaydip res","first 4");
+//                w = width;
+//                h = (int) (w/d);
+//                Log.e("bitmap height",h+"");
+//
+//            }
+//            else {
+//                Log.e("jaydip res","first 5");
+//                h = height;
+//                w = (int) (h * d);
+//            }
+//        }
         Log.e("bitmap final",w+"  /"+h);
         return  Bitmap.createScaledBitmap(b,w,h,false);
     }
