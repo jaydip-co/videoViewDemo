@@ -51,20 +51,26 @@ public class StrikerAddapter extends RecyclerView.Adapter<StrikerAddapter.Strike
 //            FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 //            slider.setLayoutParams(layoutParams);
 //            holder.frameLayout.addView(slider);
-            Float[] values = {Float.valueOf(single.start),Float.valueOf(single.end)};
+            Float[] values = {(float) single.start, (float) single.end};
             holder.imageView.setImageBitmap(single.image);
-            holder.rSlider.setValues(values);
+
             holder.rSlider.setValueTo(gifFile.frames.size());
             holder.rSlider.setValueFrom(1);
             holder.rSlider.setStepSize(1);
+            holder.rSlider.setValues((float)single.start,(float)single.end);
             holder.rSlider.addOnChangeListener(new RangeSlider.OnChangeListener() {
                 @Override
                 public void onValueChange(@NonNull RangeSlider slider, float value, boolean fromUser) {
-                    List<Float> val= slider.getValues();
-                    single.start = val.get(0).intValue();
-                    single.end = val.get(1).intValue();
-                    gifFile.stickers.set(position,single);
-                    indecator.onRefresh();
+                  if(fromUser){
+                      Log.e("jaydipBool",fromUser+"");
+                      List<Float> val= slider.getValues();
+                      Log.e("jaydipValue",val.get(0)+"   //" +val.get(1) );
+                      single.start = val.get(0).intValue();
+                      single.end = val.get(1).intValue();
+                      Log.e("jaydipValue",single.start+"   //" +single.end );
+                      gifFile.setRange(single.viewId,val.get(0).intValue(),val.get(1).intValue());
+                      indecator.onRefresh();
+                  }
 //                    notifyDataSetChanged();
 //                    gifFile.setRange(val.get(0).intValue(),val.get(1).intValue(),holder.itemView.getId());
                 }

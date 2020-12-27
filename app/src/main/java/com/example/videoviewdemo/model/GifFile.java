@@ -1,10 +1,12 @@
 package com.example.videoviewdemo.model;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.FileUtils;
 import android.util.Log;
 import android.util.TypedValue;
@@ -16,21 +18,29 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class GifFile {
     private static GifFile Instance;
+    List<Bitmap> finalFrames = new ArrayList<>();
 
     public AnimatedGifEncoder mEncoder;
    public List<Bitmap> frames = new ArrayList<>();
-   public float fps = 24;
+   public float fps = (float) 0.28;
     public  List<Sticker> stickers = new ArrayList<>();
     public int currentFrame = 1;
     public int currentStriker = -1;
     public int maxWidth = 0 ,maHeight =0 ;
     public int statusHeight = 0;
 
+    public static  void reset() {
+        Instance = null;
+    }
     public static GifFile getInstance(){
         if(Instance == null){
             Instance = new GifFile();
@@ -105,13 +115,38 @@ public class GifFile {
             }
         }
     }
+    public Sticker getSticker(int vId){
+        for (Sticker s : stickers){
+            if(s.viewId == vId){
+                return  s;
+            }
+
+        }
+        return null;
+    }
+    public void setRange(int vId,int start,int end){
+        for (Sticker s : stickers){
+            if(s.viewId == vId){
+                s.start =start;
+                s.end = end;
+                break;
+            }
+        }
+    }
     public void draw(Context context){
-        List<Bitmap> finalFrames = new ArrayList<>();
+//        ProgressDialog progress = new ProgressDialog(context);
+//        progress.setTitle("Loading");
+//        progress.setMessage("Wait while loading...");
+//        progress.setCancelable(false); // disable dismiss by tapping outside of the dialog
+//        progress.show();
+// To dismiss the dialog
+
+        finalFrames = new ArrayList<>();
         int w = context.getResources().getDisplayMetrics().widthPixels;
         int ht = context.getResources().getDisplayMetrics().heightPixels;
 Log.e("jaydipDraw",ht+"");
         //TODO : change the value 40 witch is fixed according to space abow appbar
-        int h = (int) (((float)ht)*2/3 -statusHeight);
+        int h = (int) (((float)ht - statusHeight)*2/3 );
         Log.e("jaydipDraw ","heighrt  "+h+" width  "+w);
 //        double ratioX = maxWidth/w;
 //        double ratioY = maHeight/h;
@@ -125,6 +160,7 @@ Log.e("jaydipDraw",ht+"");
                 maHeight = temp.getHeight();
             }
             scaledFrames.add(temp);
+            Log.e("jaydipTest","width ====  "+temp.getWidth()+"  // "+maxWidth+"  height ===="+temp.getHeight()+"  // "+maHeight);
         }
         int xMargin = (w - maxWidth)/2;
         int yMargin = (h - maHeight)/2;
@@ -133,7 +169,7 @@ Log.e("jaydipDraw",ht+"");
        while(current < scaledFrames.size()){
            Bitmap temp = Bitmap.createBitmap(maxWidth,maHeight,Bitmap.Config.RGB_565);
            Canvas canvas = new Canvas(temp);
-           canvas.drawColor(Color.WHITE);
+           canvas.drawColor(Color.TRANSPARENT);
            Bitmap toDraw = scaledFrames.get(current);
            int BW = toDraw.getWidth();
            int BH = toDraw.getHeight();
@@ -148,43 +184,50 @@ Log.e("jaydipDraw",ht+"");
            for(Sticker s : stickers){
                if(s.start <= current+1 && s.end >= current+1){
                    Bitmap bitmap= Bitmap.createScaledBitmap(s.image,(int)(s.width),(int)(s.height),false);
+//                   Bitmap bitmap = s.image;
                    float px = (float) (s.x -xMargin +( bitmap.getWidth()/2));
                    float py = (float) (s.y - yMargin+( bitmap.getHeight()/2));
                    canvas.save();
                    canvas.rotate(s.angle,px,py);
-                   canvas.drawBitmap(bitmap,(float) (s.x -xMargin),(float)( s.y-yMargin),null);
+                   //TODO : add Y marging in y point
+                   canvas.drawBitmap(bitmap,(float) (s.x -xMargin),(float)( s.y),null);
                    canvas.restore();
                }
            }
            finalFrames.add(temp);
            current++;
        }
-       frames = finalFrames;
-       saveGif("jaydip",context);
+//       frames = finalFrames;
+       saveGif(context);
+//        progress.dismiss();
     }
-    public void saveGif(String FileName,Context context){
-        String FinalFileName = FileName +".gif";
+
+    public void saveGif(Context context){
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            mEncoder = new AnimatedGifEncoder();
             mEncoder.start(bos);
             mEncoder.setFrameRate(fps);
-            for(Bitmap b : frames){
+            for(Bitmap b : finalFrames){
                 mEncoder.addFrame(b);
             }
             mEncoder.finish();
-            File fileD = new File("/storage/emulated/0/GifCreater");
-            if(!fileD.exists()){
-                boolean b = fileD.mkdir();
-                Log.e("jaydip",b+"");
-            }
-            File file = new File(fileD,FinalFileName);
+
+//            File file = new File(context.getExternalFilesDir("file"),FinalFileName);
+//            File file = getTempPath(context);
+            File file = getPath(context);
+
+
             Log.e("jaydipPath",file.getAbsolutePath());
 
             FileOutputStream stream = new FileOutputStream(file);
             stream.write(bos.toByteArray());
             stream.close();
             Log.e("jaydip : status","saved");
-            Toast.makeText(context,"saved:- "+file.getAbsolutePath(),Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "saved:- " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+
+
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -235,5 +278,51 @@ Log.e("jaydipDraw",ht+"");
 //        }
         Log.e("bitmap final",w+"  /"+h);
         return  Bitmap.createScaledBitmap(b,w,h,false);
+    }
+    public File getPath(Context context){
+        File fileD = new File("/storage/emulated/0/GifCreater");
+        if(!fileD.exists()){
+            boolean b = fileD.mkdir();
+            Log.e("jaydip",b+"");
+        }
+        String time = new SimpleDateFormat("ddMMyyyy_HHmmss").format(new Date());
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.Q){
+          return new File(context.getExternalFilesDir("file"),time+".gif");
+        }
+        else{
+            return new File(fileD,time+".gif");
+        }
+
+//        File file = new File(context.getExternalFilesDir("file"),"jay.gif");
+    }
+    public File getTempPath(Context context){
+
+        String time = new SimpleDateFormat("ddMMyyyy_HHmmss").format(new Date());
+//        File file = new File(context.getExternalFilesDir("file"),time+".gif");
+        File file = new File(context.getCacheDir(),"temp.gif");
+        return file;
+    }
+    public  void copyGif(Context context){
+        try {
+
+
+            File oldFile = new File(context.getCacheDir(),"temp.gif");
+            File newFile = getPath(context);
+
+            InputStream IStream = new FileInputStream(oldFile);
+            OutputStream OStream = new FileOutputStream(newFile);
+            byte[] buff = new byte[1024];
+            int len;
+            while ((len = IStream.read(buff)) > 0){
+                OStream.write(buff,0,len);
+            }
+            Toast.makeText(context, "saved:- " + newFile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+            IStream.close();
+            OStream.close();
+        }
+        catch (Exception e){
+            Log.e("gif",e.toString());
+        }
+
     }
 }

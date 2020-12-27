@@ -9,10 +9,12 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:requestLegacyExternalStorage="true"
-        android:theme="@style/Theme.VideoViewDemo">
+        android:theme="@style/Theme.VideoViewDemo"
+        >
+        <activity android:name=".ConfirmAvtivity"></activity>
         <activity android:name=".SelectActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -20,13 +22,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".BitmapCreate"></activity>
-        <activity android:name=".EditFrames">
-
-        </activity>
+        <activity android:name=".BitmapCreate" />
+        <activity android:name=".EditFrames"></activity>
         <activity android:name=".MultipleImage" />
         <activity android:name=".MovableImage" />
-        <activity android:name=".GifConvert" />
         <activity android:name=".imageActivity" />
         <activity android:name=".MainActivity" />
     </application>
